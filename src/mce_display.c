@@ -35,6 +35,7 @@
  */
 
 #include "mce_display.h"
+#include "wlrdisplay.h"
 #include "mce_proxy.h"
 #include "mce_log_p.h"
 
@@ -105,9 +106,8 @@ mce_display_status_query_done(
     GError* error = NULL;
     int32_t status = 0;
     MceDisplay* self = MCE_DISPLAY(arg);
-
-    if (com_canonical_unity_screen_call_get_display_power_state_finish(
-        COM_CANONICAL_UNITY_SCREEN(proxy), &status, result, &error)) {
+    
+    if(wlrdisplay(0,NULL)){
         GDEBUG("Display is currently %d", status);
         mce_display_status_update(self, status);
     } else {
