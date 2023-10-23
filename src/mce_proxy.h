@@ -1,7 +1,8 @@
 /*
  * Copyright (C) 2016 Jolla Ltd.
  * Contact: Slava Monich <slava.monich@jolla.com>
- *
+ * Copyright (C) 2023 Droidian Project
+ * Copyright (C) 2023 Joaquin Philco <joaquinphilco@gmail.coom>
  * You may use this file under the terms of BSD license as follows:
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +39,7 @@
 #define MCE_PROXY_H
 
 #include "mce_types.h"
+#include <gio/gio.h>
 
 typedef struct mce_proxy_priv MceProxyPriv;
 struct _ComCanonicalUnityScreen;

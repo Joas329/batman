@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2016 Jolla Ltd.
  * Contact: Slava Monich <slava.monich@jolla.com>
+ *  * Copyright (C) 2023 Droidian Project
+ * Copyright (C) 2023 Joaquin Philco <joaquinphilco@gmail.coom>
  *
  * You may use this file under the terms of BSD license as follows:
  *

@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2016 Jolla Ltd.
  * Contact: Slava Monich <slava.monich@jolla.com>
+ *  * Copyright (C) 2023 Droidian Project
+ * Copyright (C) 2023 Joaquin Philco <joaquinphilco@gmail.coom>
  *
  * You may use this file under the terms of BSD license as follows:
  *
@@ -37,8 +39,12 @@
 #include "mce_proxy.h"
 #include "mce_log_p.h"
 
-/* Generated headers */
-#include "com.canonical.Unity.Screen.h"
+#define MCE_SERVICE "org.droidian.batman.wlrdisplay'
+#define MCE_REQUEST_PATH "/com/canonical/Unity/Screen"
+#define MCE_SIGNAL_PATH "/com/canonical/Unity/Screen"
+
+struct _OrgDroidianBatmanWlrdisplay;
+typdef struct _OrgDroidianBatmanWlrdisplay OrgDroidianBatmanWlrDisplay;
 
 GLOG_MODULE_DEFINE("mce");
 
@@ -53,10 +59,6 @@ enum mce_proxy_signal {
 };
 
 #define SIGNAL_VALID_CHANGED_NAME   "mce-proxy-valid-changed"
-
-#define MCE_SERVICE "com.canonical.Unity.Screen"
-#define MCE_REQUEST_PATH "/com/canonical/Unity/Screen"
-#define MCE_SIGNAL_PATH "/com/canonical/Unity/Screen"
 
 static guint mce_proxy_signals[SIGNAL_COUNT] = { 0 };
 
@@ -108,7 +110,7 @@ mce_proxy_init_check(
 
     if (self->signal && self->request && !priv->mce_watch_id) {
         priv->mce_watch_id = g_bus_watch_name_on_connection(priv->bus,
-            MCE_SERVICE, G_BUS_NAME_WATCHER_FLAGS_NONE,
+            NULL, G_BUS_NAME_WATCHER_FLAGS_NONE,
             mce_name_appeared, mce_name_vanished, self, NULL);
     }
 }
@@ -133,6 +135,23 @@ mce_proxy_request_proxy_new_finished(
     }
     mce_proxy_unref(self);
 }
+
+OrgDroidianBatmanWlrdisplay *
+org_droidian_batman_wlrdisplay_new_finish (
+    GAsynch         *res,
+    GError          **error)
+{
+    GObject *ret;
+    GObject *source_object;
+    source_object = g_async_result_get_source_object (res);
+    ret = g_async_initable_new_finish (G_ASYNC_INITABLE (source_object), res, error);
+    g_object_unref (source_object);
+    if (ret != NULL)
+        return COM_CANONICAL_UNITY_SCREEN (ret);
+    else
+        return NULL;
+}
+
 
 static
 void
@@ -168,16 +187,16 @@ mce_proxy_bus_get_finished(
 
     priv->bus = g_bus_get_finish(result, &error);
     if (priv->bus) {
-        com_canonical_unity_screen_proxy_new(priv->bus,
-            G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
-            MCE_SERVICE, MCE_REQUEST_PATH, NULL,
-            mce_proxy_request_proxy_new_finished,
-            mce_proxy_ref(self));
-        com_canonical_unity_screen_proxy_new(priv->bus,
-            G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
-            MCE_SERVICE, MCE_SIGNAL_PATH, NULL,
-            mce_proxy_signal_proxy_new_finished,
-            mce_proxy_ref(self));
+        g_asynch_initiable_new_asynch(G_GNUC_CONST,G_PRIORITY_DEFAULT, NULL, mce_proxy_request_proxy_new_finished, 
+        mce_proxy_ref(self), "g-flags", G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES, 
+        "g-name", MCE_SERVICE, "g-connection", priv->bus,
+        "g-object-path", MCE_REQUEST_PATH, "g-interface-name", "org.droidian.batman.wlrdisplay", NULL);
+
+        g_asynch_initiable_new_asynch(G_GNUC_CONST,G_PRIORITY_DEFAULT, NULL, mce_proxy_request_proxy_new_finished, 
+        mce_proxy_ref(self), "g-flags", G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES, 
+        "g-name", MCE_SERVICE, "g-connection", priv->bus,
+        "g-object-path", MCE_SIGNAL_PATH, "g-interface-name", "org.droidian.batman.wlrdisplay", NULL);
+        
     } else {
         GERR("Failed to attach to system bus: %s", GERRMSG(error));
         g_error_free(error);

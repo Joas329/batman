@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2016 Jolla Ltd.
  * Contact: Slava Monich <slava.monich@jolla.com>
+ * Copyright (C) 2023 Droidian Project
+ * Copyright (C) 2023 Joaquin Philco <joaquinphilco@gmail.coom>
  *
  * You may use this file under the terms of BSD license as follows:
  *
@@ -41,8 +43,6 @@
 
 #include <gutil_misc.h>
 
-/* Generated headers */
-#include "com.canonical.Unity.Screen.h"
 
 struct mce_display_priv {
     MceProxy* proxy;
@@ -99,15 +99,13 @@ mce_display_status_update(
 static
 void
 mce_display_status_query_done(
-    GObject* proxy,
-    GAsyncResult* result,
     gpointer arg)
 {
     GError* error = NULL;
     int32_t status = 0;
     MceDisplay* self = MCE_DISPLAY(arg);
     
-    if(wlrdisplay(0,NULL)){
+    if(!wlrdisplay(0,NULL)){
         GDEBUG("Display is currently %d", status);
         mce_display_status_update(self, status);
     } else {
@@ -126,7 +124,6 @@ mce_display_status_query_done(
 static
 void
 mce_display_power_state_change(
-    ComCanonicalUnityScreen* proxy,
     int32_t status,
     gpointer arg)
 {
@@ -153,8 +150,7 @@ mce_display_status_query(
             MCE_DISPLAY_SIG, G_CALLBACK(mce_display_power_state_change), self);
     }
     if (proxy->request && proxy->valid) {
-        com_canonical_unity_screen_call_get_display_power_state(proxy->request, NULL,
-            mce_display_status_query_done, mce_display_ref(self));
+        mce_display_status_query_done(mce_display_ref(self));
     }
 }
 
