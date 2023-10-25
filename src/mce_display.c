@@ -37,18 +37,12 @@
  */
 
 #include "mce_display.h"
-#include "wlrdisplay.h"
-#include "mce_proxy.h"
-#include "mce_log_p.h"
 
-#include <gutil_misc.h>
-
-
-struct mce_display_priv {
-    MceProxy* proxy;
-    gulong proxy_valid_id;
-    gulong display_status_ind_id;
-};
+// struct mce_display_priv {
+//     MceProxy* proxy;
+//     gulong proxy_valid_id;
+//     gulong display_status_ind_id;
+// };
 
 enum mce_display_signal {
     SIGNAL_VALID_CHANGED,
@@ -77,100 +71,89 @@ G_DEFINE_TYPE(MceDisplay, mce_display, G_TYPE_OBJECT)
  * Implementation
  *==========================================================================*/
 
-static
-void
-mce_display_status_update(
-    MceDisplay* self,
-    int32_t status)
-{
-    MCE_DISPLAY_STATE state = status;
-    MceDisplayPriv* priv = self->priv;
+// static
+// void
+// mce_display_status_update(
+//     MceDisplay* self,
+//     int32_t status)
+// {
+//     MCE_DISPLAY_STATE state = status;
+//     MceDisplayPriv* priv = self->priv;
 
-    if (self->state != state) {
-        self->state = state;
-        g_signal_emit(self, mce_display_signals[SIGNAL_STATE_CHANGED], 0);
-    }
-    if (priv->proxy->valid && !self->valid) {
-        self->valid = TRUE;
-        g_signal_emit(self, mce_display_signals[SIGNAL_VALID_CHANGED], 0);
-    }
-}
+//     if (self->state != state) {
+//         self->state = state;
+//         g_signal_emit(self, mce_display_signals[SIGNAL_STATE_CHANGED], 0);
+//     }
+//     if (priv->proxy->valid && !self->valid) {
+//         self->valid = TRUE;
+//         g_signal_emit(self, mce_display_signals[SIGNAL_VALID_CHANGED], 0);
+//     }
+// }
 
-static
-void
-mce_display_status_query_done(
-    gpointer arg)
-{
-    GError* error = NULL;
-    int32_t status = 0;
-    MceDisplay* self = MCE_DISPLAY(arg);
+// static
+// void
+// mce_display_status_query_done(
+//     gpointer arg)
+// {
+//     GError* error = NULL;
+//     int32_t status = 0;
+//     MceDisplay* self = MCE_DISPLAY(arg);
     
-    if(!wlrdisplay(0,NULL)){
-        GDEBUG("Display is currently %d", status);
-        mce_display_status_update(self, status);
-    } else {
-        /*
-         * We could retry but it's probably not worth the trouble
-         * because the next time display state changes we receive
-         * display_status_ind signal and sync our state with mce.
-         * Until then, this object stays invalid.
-         */
-        GWARN("Failed to query display state %s", GERRMSG(error));
-        g_error_free(error);
-    }
-    mce_display_unref(self);
-}
+//     if(!wlrdisplay(0,NULL)){
+//         GDEBUG("Display is currently %d", status);
+//     } else {
+//         /*
+//          * We could retry but it's probably not worth the trouble
+//          * because the next time display state changes we receive
+//          * display_status_ind signal and sync our state with mce.
+//          * Until then, this object stays invalid.
+//          */
+//         GWARN("Failed to query display state %s", GERRMSG(error));
+//         g_error_free(error);
+//     }
+//     mce_display_unref(self);
+// }
 
-static
-void
-mce_display_power_state_change(
-    int32_t status,
-    gpointer arg)
-{
-    GDEBUG("Display is %d", status);
-    mce_display_status_update(MCE_DISPLAY(arg), status);
-}
+// static
+// void
+// mce_display_power_state_change(
+//     int32_t status,
+//     gpointer arg)
+// {
+//     GDEBUG("Display is %d", status);
+//     mce_display_status_update(MCE_DISPLAY(arg), status);
+// }
 
 static
 void
 mce_display_status_query(
-    MceDisplay* self)
+    MceDisplay* self
+)
 {
-    MceDisplayPriv* priv = self->priv;
-    MceProxy* proxy = priv->proxy;
-
-    /*
-     * proxy->signal and proxy->request may not be available at the
-     * time when MceDisplay is created. In that case we have to wait
-     * for the valid signal before we can connect the display state
-     * signal and submit the initial query.
-     */
-    if (proxy->signal && !priv->display_status_ind_id) {
-        priv->display_status_ind_id = g_signal_connect(proxy->signal,
-            MCE_DISPLAY_SIG, G_CALLBACK(mce_display_power_state_change), self);
-    }
-    if (proxy->request && proxy->valid) {
-        mce_display_status_query_done(mce_display_ref(self));
-    }
-}
-
-static
-void
-mce_display_valid_changed(
-    MceProxy* proxy,
-    void* arg)
-{
-    MceDisplay* self = MCE_DISPLAY(arg);
-
-    if (proxy->valid) {
-        mce_display_status_query(self);
+    if(!wlrdisplay(0,NULL)){  //0 on, 1 off
+        self->state = MCE_DISPLAY_STATE_ON;
     } else {
-        if (self->valid) {
-            self->valid = FALSE;
-            g_signal_emit(self, mce_display_signals[SIGNAL_VALID_CHANGED], 0);
-        }
+        self->state = MCE_DISPLAY_STATE_ON;
     }
 }
+
+// static
+// void
+// mce_display_valid_changed(
+//     MceProxy* proxy,
+//     void* arg)
+// {
+//     MceDisplay* self = MCE_DISPLAY(arg);
+
+//     if (proxy->valid) {
+//         mce_display_status_query(self);
+//     } else {
+//         if (self->valid) {
+//             self->valid = FALSE;
+//             g_signal_emit(self, mce_display_signals[SIGNAL_VALID_CHANGED], 0);
+//         }
+//     }
+// }
 
 /*==========================================================================*
  * API
@@ -263,10 +246,10 @@ mce_display_init(
     MceDisplayPriv* priv = G_TYPE_INSTANCE_GET_PRIVATE(self, MCE_DISPLAY_TYPE,
         MceDisplayPriv);
 
-    self->priv = priv;
-    priv->proxy = mce_proxy_new();
-    priv->proxy_valid_id = mce_proxy_add_valid_changed_handler(priv->proxy,
-        mce_display_valid_changed, self);
+    // self->priv = priv;
+    // priv->proxy = mce_proxy_new();
+    // priv->proxy_valid_id = mce_proxy_add_valid_changed_handler(priv->proxy,
+    //     mce_display_valid_changed, self);
 }
 
 static
@@ -277,12 +260,12 @@ mce_display_finalize(
     MceDisplay* self = MCE_DISPLAY(object);
     MceDisplayPriv* priv = self->priv;
 
-    if (priv->display_status_ind_id) {
-        g_signal_handler_disconnect(priv->proxy->signal,
-            priv->display_status_ind_id);
-    }
-    mce_proxy_remove_handler(priv->proxy, priv->proxy_valid_id);
-    mce_proxy_unref(priv->proxy);
+    // if (priv->display_status_ind_id) {
+    //     g_signal_handler_disconnect(priv->proxy->signal,
+    //         priv->display_status_ind_id);
+    // }
+    // mce_proxy_remove_handler(priv->proxy, priv->proxy_valid_id);
+    // mce_proxy_unref(priv->proxy);
     G_OBJECT_CLASS(PARENT_CLASS)->finalize(object);
 }
 
@@ -294,7 +277,7 @@ mce_display_class_init(
     GObjectClass* object_class = G_OBJECT_CLASS(klass);
 
     object_class->finalize = mce_display_finalize;
-    g_type_class_add_private(klass, sizeof(MceDisplayPriv));
+    // g_type_class_add_private(klass, sizeof(MceDisplayPriv));
     mce_display_signals[SIGNAL_VALID_CHANGED] =
         g_signal_new(SIGNAL_VALID_CHANGED_NAME,
             G_OBJECT_CLASS_TYPE(klass), G_SIGNAL_RUN_FIRST,
